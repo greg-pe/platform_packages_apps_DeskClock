@@ -21,6 +21,7 @@ import java.text.DateFormatSymbols;
 import java.util.Calendar;
 import java.util.Date;
 
+import com.android.deskclock.R;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.appwidget.AppWidgetManager;
@@ -29,7 +30,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -37,7 +37,6 @@ import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.preference.PreferenceManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.text.TextPaint;
@@ -45,8 +44,6 @@ import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
-
-import net.margaritov.preference.colorpicker.ColorPickerPreference;
 
 /**
  * Simple widget to show digital clock.
@@ -70,10 +67,8 @@ public class DigitalAppWidgetService extends Service {
     private float densityMultiplier;
     private int density;
     private final Handler mHandler = new Handler();
-    private Typeface clock;
-    private TextPaint paint;
-    private SharedPreferences mPrefs;
-    private int color = -1;
+    Typeface clock;
+    TextPaint paint;
 
     private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
         @Override
@@ -103,8 +98,6 @@ public class DigitalAppWidgetService extends Service {
 
         paint = new TextPaint();
 
-        mPrefs =  PreferenceManager.getDefaultSharedPreferences(this);
-
         File f = new File(SYSTEM_FONT_ANDROIDCLOCK);
         if (f.exists()) {
             clock = Typeface.createFromFile(SYSTEM_FONT_ANDROIDCLOCK);
@@ -117,15 +110,13 @@ public class DigitalAppWidgetService extends Service {
             }
         }
 
-        color = mPrefs.getInt("digital_clock_color", -1);
-
         paint.setAntiAlias(true);
         paint.setSubpixelText(true);
         paint.setFilterBitmap(true);
         paint.setLinearText(true);
         paint.density = densityMultiplier;
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(color);
+        paint.setColor(getResources().getColor(R.color.time_text_color));
         paint.setTextSize((int) (92 * densityMultiplier));
         paint.setTextAlign(Align.RIGHT);
     }
@@ -187,19 +178,13 @@ public class DigitalAppWidgetService extends Service {
         if (DEBUG)
             Log.d(TAG, "new time: " + newTime);
 
-        color = mPrefs.getInt("digital_clock_color", -1);
-        if (DEBUG)
-            Log.d(TAG, "color: " + String.format("#%06X", (0xFFFFFF & color)));
-
         final Date now = new Date();
 
-        views.setTextColor(R.id.date, color);
         views.setTextViewText(R.id.date, DateFormat.format(mDateFormat, now));
 
         views.setImageViewBitmap(R.id.timeDisplayImage,
                 createTimeBitmap(newTime));
 
-        views.setTextColor(R.id.am_pm, color);
         views.setTextViewText(R.id.am_pm,
                 mCalendar.get(Calendar.AM_PM) == 0 ? mAmString : mPmString);
 
@@ -222,9 +207,6 @@ public class DigitalAppWidgetService extends Service {
     public Bitmap createTimeBitmap(CharSequence time) {
 
         Rect bounds = new Rect();
-
-        paint.setColor(color);
-
         paint.getTextBounds("00:00", 0, 5, bounds);
 
         Bitmap myBitmap = Bitmap.createBitmap(bounds.width() + (int) (5 * densityMultiplier),
